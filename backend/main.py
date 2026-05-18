@@ -13,29 +13,6 @@ import models  # ensure models are registered
 
 Base.metadata.create_all(bind=engine)
 
-# PostgreSQL のみ: 各文を独立トランザクションで実行（冪等）
-if "postgresql" in settings.DATABASE_URL:
-    from sqlalchemy import text as _text
-    _migration_stmts = [
-        "ALTER TABLE companies ENABLE ROW LEVEL SECURITY",
-        "ALTER TABLE users ENABLE ROW LEVEL SECURITY",
-        "ALTER TABLE research_sessions ENABLE ROW LEVEL SECURITY",
-        "ALTER TABLE video_projects ENABLE ROW LEVEL SECURITY",
-        "ALTER TABLE scripts ENABLE ROW LEVEL SECURITY",
-        "ALTER TABLE thumbnails ENABLE ROW LEVEL SECURITY",
-        "CREATE INDEX IF NOT EXISTS idx_research_sessions_company ON research_sessions(company_id)",
-        "CREATE INDEX IF NOT EXISTS idx_video_projects_company ON video_projects(company_id)",
-        "CREATE INDEX IF NOT EXISTS idx_scripts_company ON scripts(company_id)",
-        "CREATE INDEX IF NOT EXISTS idx_thumbnails_company ON thumbnails(company_id)",
-        "CREATE INDEX IF NOT EXISTS idx_users_company ON users(company_id)",
-        "CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)",
-    ]
-    for _stmt in _migration_stmts:
-        try:
-            with engine.begin() as _conn:
-                _conn.execute(_text(_stmt))
-        except Exception:
-            pass
 
 from api import research, planning, script, thumbnail, direction
 from api.auth_router import router as auth_router
