@@ -78,26 +78,32 @@ def me(current_user: User = Depends(get_current_user)):
 @limiter.limit("3/hour")
 async def initial_setup(request: Request, req: SetupRequest, db: Session = Depends(get_db)):
     """初回セットアップ専用。ユーザーが0人のときのみ有効。"""
-    count = db.query(User).count()
-    if count > 0:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="初期設定は完了しています")
+    try:
+        count = db.query(User).count()
+        if count > 0:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="初期設定は完了しています")
 
-    import uuid
-    user = User(
-        id=str(uuid.uuid4()),
-        email=req.email,
-        password_hash=hash_password(req.password),
-        name=req.name,
-        role="super_admin",
-        company_id=None,
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
+        import uuid
+        user = User(
+            id=str(uuid.uuid4()),
+            email=req.email,
+            password_hash=hash_password(req.password),
+            name=req.name,
+            role="super_admin",
+            company_id=None,
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
 
-    token = create_access_token({"sub": user.id, "company_id": None, "role": "super_admin"})
-    return {
-        "access_token": token,
-        "token_type": "bearer",
-        "user": {"id": user.id, "email": user.email, "name": user.name, "role": user.role},
-    }
+        token = create_access_token({"sub": user.id, "company_id": None, "role": "super_admin"})
+        return {
+            "access_token": token,
+            "token_type": "bearer",
+            "user": {"id": user.id, "email": user.email, "name": user.name, "role": user.role},
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"セットアップエラー: {type(e).__name__}: {str(e)}")
