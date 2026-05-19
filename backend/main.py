@@ -62,7 +62,7 @@ if os.path.exists("generated_thumbnails"):
 def health():
     return {
         "status": "ok",
-        "version": "2.0.0",
+        "version": "2.0.1-debug",
         "mock_mode": {
             "youtube": not bool(settings.YOUTUBE_API_KEY),
             "anthropic": not bool(settings.ANTHROPIC_API_KEY),
