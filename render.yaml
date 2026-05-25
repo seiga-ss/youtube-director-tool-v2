@@ -1,19 +1,20 @@
 databases:
-  - name: youtube-director-v2-db
+  - name: youtube-director-tool-v2-db
     plan: free
     databaseName: youtube_director_v2
     user: youtube_director_v2
 
 services:
   - type: web
-    name: youtube-director-v2-backend
+    name: youtube-director-tool-v2
     runtime: python
     buildCommand: pip install --upgrade pip setuptools wheel && pip install -r backend/requirements.txt
     startCommand: cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT
+    autoDeploy: true
     envVars:
       - key: DATABASE_URL
         fromDatabase:
-          name: youtube-director-v2-db
+          name: youtube-director-tool-v2-db
           property: connectionString
       - key: YOUTUBE_API_KEY
         sync: false
