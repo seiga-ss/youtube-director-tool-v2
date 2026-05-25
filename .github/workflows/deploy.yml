@@ -9,9 +9,24 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger Render Deploy
+      - name: Trigger Render Deploy via API
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
         run: |
-          curl -s --fail-with-body -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" \
-            -H "Content-Type: application/json" \
-            && echo "Deploy triggered successfully" \
-            || echo "Deploy trigger failed"
+          if [ -n "$RENDER_API_KEY" ] && [ -n "$RENDER_SERVICE_ID" ]; then
+            echo "Triggering deploy via Render API..."
+            curl -s --fail-with-body \
+              -X POST "https://api.render.com/v1/services/${RENDER_SERVICE_ID}/deploys" \
+              -H "Authorization: Bearer ${RENDER_API_KEY}" \
+              -H "Content-Type: application/json" \
+              -d '{"clearCache": "do_not_clear"}' \
+              && echo "Deploy triggered successfully"
+          elif [ -n "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" ]; then
+            echo "Triggering deploy via hook URL..."
+            curl -s --fail-with-body -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" \
+              && echo "Deploy triggered successfully"
+          else
+            echo "WARNING: No Render credentials configured. Set RENDER_API_KEY+RENDER_SERVICE_ID or RENDER_DEPLOY_HOOK_URL in GitHub secrets."
+            exit 1
+          fi

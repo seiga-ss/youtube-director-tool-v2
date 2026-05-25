@@ -7,6 +7,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 import os
+import traceback
 from config import settings
 from database import engine, Base
 import models  # ensure models are registered
@@ -23,12 +24,20 @@ limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(
     title="YouTube Director Tool API",
     description="YouTubeディレクター業務90%削減ツール",
-    version="2.0.0",
+    version="2.0.1",
 )
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
+
+
+@app.exception_handler(Exception)
+async def generic_exception_handler(request: Request, exc: Exception):
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"{type(exc).__name__}: {str(exc)}", "traceback": traceback.format_exc()[-2000:]},
+    )
 
 origins = [o.strip() for o in settings.CORS_ORIGINS.split(",")]
 app.add_middleware(
