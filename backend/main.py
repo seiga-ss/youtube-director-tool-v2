@@ -9,10 +9,22 @@ from slowapi.middleware import SlowAPIMiddleware
 import os
 import traceback
 from config import settings
-from database import engine, Base
+from database import Base
 import models  # ensure models are registered
 
-Base.metadata.create_all(bind=engine)
+try:
+    from database import engine
+    Base.metadata.create_all(bind=engine)
+except Exception as e:
+    print(f"[WARNING] DB init failed: {e} — retrying with SQLite fallback")
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    import database
+    database.engine = create_engine("sqlite:///./youtube_director_fallback.db",
+                                    connect_args={"check_same_thread": False})
+    database.SessionLocal = sessionmaker(autocommit=False, autoflush=False,
+                                         bind=database.engine)
+    Base.metadata.create_all(bind=database.engine)
 
 
 from api import research, planning, script, thumbnail, direction
